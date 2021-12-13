@@ -13,28 +13,73 @@ Standard sounds from Warcraft can be added with simple functions.
 
 ```
 function AddTaunt takes string name, string text, sound whichSound returns nothing
+endfunction
+
+function RemoveTaunt takes string name returns nothing
+endfunction
+
+function GetTaunt takes integer index returns string
+endfunction
+
+function CountTaunts takes nothing returns integer
+endfunction
 
 function AddTauntAlias takes string name, string alias returns nothing
+endfunction
+
+function RemoveTauntAlias takes string name, string alias returns nothing
+endfunction
+
+function GetTauntAlias takes integer index returns string
+endfunction
+
+function CountTauntAliases takes string name returns integer
+endfunction
 
 function EnableTauntAliasForPlayer takes string name, string alias returns nothing
+endfunction
 
-function DisableTauntAliasForPlayer takes string name, string alias returns nothing
-   
+function DisableTauntAliasForPlayer takes string name, string alias returns nothing`
+endfunction
+
+function IsTauntAliasEnabledForPlayer takes string name, string alias, player whichPlayer returns boolean
+endfunction
+
 function EnableTauntForPlayer takes string name, player whichPlayer returns nothing
+endfunction
 
 function DisableTauntForPlayer takes string name, player whichPlayer returns nothing
+endfunction
+
+function IsTauntEnabledForPlayer takes string name, player whichPlayer returns boolean
+endfunction
 
 function SendTaunt takes string name, player from, force to returns nothing
+endfunction
 
 function MuteTaunts takes player whichPlayer, force from returns nothing
+endfunction
+
+function IsTauntMutedForPlayer takes string name, player whichPlayer returns boolean
+endfunction
 
 function MuteTauntSounds takes player whichPlayer, force from returns nothing
+endfunction
+
+function IsTauntSoundsMutedForPlayer takes string name, player whichPlayer returns boolean
+endfunction
 
 function MuteTauntMessages takes player whichPlayer, force from returns nothing
+endfunction
+
+function IsTauntMessagesMutedForPlayer takes string name, player whichPlayer returns boolean
+endfunction
 
 function UnmuteTaunts takes player whichPlayer, force from returns nothing
+endfunction
 
 function UnmuteTauntSounds takes player whichPlayer, force from returns nothing
+endfunction
 
 function UnmuteTauntMessages takes player whichPlayer, force from returns nothing
 
