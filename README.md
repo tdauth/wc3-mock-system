@@ -11,7 +11,7 @@ It is possible to add multiple aliases which can also be used in the chat.
 Almost anything can be enabled and disabled for players only.
 Standard sounds from Warcraft can be added with simple functions.
 
-``
+```
 function AddTaunt takes string name, string text, sound whichSound returns nothing
 
 function AddTauntAlias takes string name, string alias returns nothing
@@ -47,7 +47,7 @@ function DisplayTaunts takes force whichForce returns nothing
  * Adds a taunt called "-saynomore" with the standard archer sound from Warcraft III.
  */
 function AddTauntArcherSayNoMore takes nothing returns nothing
-``
+```
 
 ## Sources
 
