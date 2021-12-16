@@ -4,7 +4,24 @@ Warcraft III: Reforged system for taunts.
 
 Taunts are ingame voice messages which players can send to each other to make the game more fun or to really send instructions to others.
 
+## Download
+
+Download this [example map]() to try the system.
+
+## Features
+
+* Works out of the box with standard chat commands.
+* Supports standard sounds from Warcraft III.
+* Multiple aliases per taunt.
+* Mute player texts and sounds.
+* Cooldowns to avoid spamming.
+* Enable taunts per player only.
+* No dependencies required.
+* Highly configurable via callbacks.
+
 ## API
+
+The system provides a simple JASS API which can be used in your custom triggers.
 
 Every taunt has a unique name which can be used to identify it and which is used by default in the chat to send it.
 It is possible to add multiple aliases which can also be used in the chat.
@@ -94,7 +111,19 @@ function DisplayTaunts takes force whichForce returns nothing
 function AddTauntArcherSayNoMore takes nothing returns nothing
 ```
 
-## Sources
+## Implementation
+
+The system is written in vJass.
+
+## Future Work
+
+In the future this system could be improved:
+
+* Custom chat GUI with mute and taunt buttons.
+* AI support: Enable some standard taunts for the AI. The AI could react to your taunts or send some depending on the game situation.
+* AI commands: Some taunts could work as real AI commands.
+
+## Links
 
 * <https://wowwiki-archive.fandom.com/wiki/Quotes_of_Warcraft_III/Orc_Horde>
 * <https://ageofempires.fandom.com/wiki/Taunts>
