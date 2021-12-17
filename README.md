@@ -19,16 +19,40 @@ By default, the system provides some useful chat commands for taunting.
 * `-taunts`: Displays all available taunts and corresponding chat commands to the player.
 * `-mute/unmute X`: Mutes/unmutes taunts from player(s) X.
 * `-muted`: Lists muted players.
+* `-players`: Lists all playing players who you can send taunts to with their player numbers and color name and indicating whether you have muted them or not.
+
+`X` can have different values like multiple player numbers `1,2,4``, player colors `red,green,blue` or the following special identifiers:
+
+* `all`: Affects all playing players. This is the default behaviour if you do no not specify X.
+* `allies`: Affects all allied playing players.
+* `enemies`: Affects all enemy playing players.
+* `neutral`: Affects all neutral playing players.
+* `computer`: Affects all Computer playing players.
+* `user`: Affects all non-Computer playing players.
+* `teamX`: Affects all players from team X where X is a number.
+* `observers`: Affects all observing players.
+* `invaders`: Affects all enemy playing players who are near to your buildings and see them.
+* `victims`: Affects all enemy playing players who have buildings next to your army and you can see them.
+
+You can combine multiple identifiers like `enemies computer` which will select only playing Computer players who are your enemies. The comma means someting like or and starts a new condition. Hence, `enemies,computer` will send it to your playing enemies but also all playing Computer players.
+
+The special identifiers are shown in addition to the actual players who the taunt is send to.
+
+## Standard Quest
+
+By default, there is an optional quest in the quest log which describes how to use taunts and lists all available chat commands per player.
 
 ## Features
 
 * Easy to use without any dependencies or much effort.
 * Provides many standard chat commands.
 * Supports standard sounds from Warcraft III.
+* Predefined collections of standard Warcarft III sounds.
 * Multiple aliases per taunt.
 * Mute player texts and sounds.
 * Cooldowns to avoid spamming.
 * Enable taunts per player only.
+* Supports a quest per player listing all available chat commands.
 * Highly configurable via options and callbacks.
 * Non-leaking.
 
@@ -98,9 +122,14 @@ function UnmuteTauntMessages takes player whichPlayer, force from returns nothin
 function DisplayTaunts takes force whichForce returns nothing
 
 /**
- * Adds a taunt called "-saynomore" with the standard archer sound from Warcraft III.
+ * Adds a taunt called "-saynomore" with the standard archer sound from Warcraft III for players in whichForce only.
  */
-function AddTauntArcherSayNoMore takes nothing returns nothing
+function AddTauntArcherSayNoMore takes force whichForce returns nothing
+
+/**
+ * Adds useful Night Elf taunts with standard sounds from Warcraft III for players in whichForce only.
+ */
+function AddTauntsNightElf takes force whichForce returns nothing
 ```
 
 ## Implementation
@@ -114,6 +143,7 @@ In the future this system could be improved:
 * Custom chat GUI with mute and taunt buttons.
 * AI support: Enable some standard taunts for the AI. The AI could react to your taunts or send some depending on the game situation.
 * AI commands: Some taunts could work as real AI commands.
+* Some command like `-react` which reacts to the latest taunt which was send to you. This would only work for standard sounds from the game.
 
 ## Links
 
