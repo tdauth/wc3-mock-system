@@ -4,20 +4,25 @@ Warcraft III: Reforged system for taunts.
 
 Taunts are ingame voice messages which players can send to each other to make the game more fun or to really send instructions to others.
 
-## Download
+## Usage
 
-Download this [example map]() to try the system.
+Put [the system's code](./src/TauntSystem.j) in your own custom map script, save your map and play it.
+
+## Test
+
+Download [this example map](./wc3tauntsystem1.0.w3x) to try the system.
 
 ## Features
 
-* Works out of the box with standard chat commands.
+* Easy to use without any dependencies or much effort.
+* Provides many standard chat commands.
 * Supports standard sounds from Warcraft III.
 * Multiple aliases per taunt.
 * Mute player texts and sounds.
 * Cooldowns to avoid spamming.
 * Enable taunts per player only.
-* No dependencies required.
-* Highly configurable via callbacks.
+* Highly configurable via options and callbacks.
+* Non-leaking.
 
 ## API
 
@@ -30,73 +35,52 @@ Standard sounds from Warcraft can be added with simple functions.
 
 ```
 function AddTaunt takes string name, string text, sound whichSound returns nothing
-endfunction
+
+function AddTauntWithStandardSound takes string name, string text, string soundPath returns nothing
 
 function RemoveTaunt takes string name returns nothing
-endfunction
 
 function GetTaunt takes integer index returns string
-endfunction
 
 function CountTaunts takes nothing returns integer
-endfunction
 
 function AddTauntAlias takes string name, string alias returns nothing
-endfunction
 
 function RemoveTauntAlias takes string name, string alias returns nothing
-endfunction
 
 function GetTauntAlias takes integer index returns string
-endfunction
 
 function CountTauntAliases takes string name returns integer
-endfunction
 
 function EnableTauntAliasForPlayer takes string name, string alias returns nothing
-endfunction
 
 function DisableTauntAliasForPlayer takes string name, string alias returns nothing`
-endfunction
 
 function IsTauntAliasEnabledForPlayer takes string name, string alias, player whichPlayer returns boolean
-endfunction
 
 function EnableTauntForPlayer takes string name, player whichPlayer returns nothing
-endfunction
 
 function DisableTauntForPlayer takes string name, player whichPlayer returns nothing
-endfunction
 
 function IsTauntEnabledForPlayer takes string name, player whichPlayer returns boolean
-endfunction
 
 function SendTaunt takes string name, player from, force to returns nothing
-endfunction
 
 function MuteTaunts takes player whichPlayer, force from returns nothing
-endfunction
 
 function IsTauntMutedForPlayer takes string name, player whichPlayer returns boolean
-endfunction
 
 function MuteTauntSounds takes player whichPlayer, force from returns nothing
-endfunction
 
 function IsTauntSoundsMutedForPlayer takes string name, player whichPlayer returns boolean
-endfunction
 
 function MuteTauntMessages takes player whichPlayer, force from returns nothing
-endfunction
 
 function IsTauntMessagesMutedForPlayer takes string name, player whichPlayer returns boolean
-endfunction
 
 function UnmuteTaunts takes player whichPlayer, force from returns nothing
-endfunction
 
 function UnmuteTauntSounds takes player whichPlayer, force from returns nothing
-endfunction
 
 function UnmuteTauntMessages takes player whichPlayer, force from returns nothing
 
@@ -113,7 +97,7 @@ function AddTauntArcherSayNoMore takes nothing returns nothing
 
 ## Implementation
 
-The system is written in vJass.
+[The system's code](./src/TauntSystem.j) is written in vJass.
 
 ## Future Work
 
