@@ -12,6 +12,14 @@ Put [the system's code](./src/TauntSystem.j) in your own custom map script, save
 
 Download [this example map](./wc3tauntsystem1.0.w3x) to try the system.
 
+## Standard Chat Commands
+
+By default, the system provides some useful chat commands for taunting.
+
+* `-taunts`: Displays all available taunts and corresponding chat commands to the player.
+* `-mute/unmute X`: Mutes/unmutes taunts from player(s) X.
+* `-muted`: Lists muted players.
+
 ## Features
 
 * Easy to use without any dependencies or much effort.
