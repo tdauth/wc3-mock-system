@@ -1,5 +1,15 @@
+/**
+ * Baradé's Taunt System Version 1.0
+ *
+ * Warcraft III: Reforged system for taunts.
+ * Taunts are ingame voice messages which players can send to each other to make the game more fun or to really send instructions to others.
+ *
+ * Source: https://github.com/tdauth/wc3-taunt-system
+ */
+
 library TauntSystemConfig requires TauntSystemUtil
 
+    // Change these variables to configure the system for your own custom map.
     globals
         constant string TAUNT_SYSTEM_CHAT_PREFIX = "-"
         constant boolean TAUNT_SYSTEM_ENABLE_CHAT_COMMAND = true
@@ -10,14 +20,21 @@ library TauntSystemConfig requires TauntSystemUtil
 		constant boolean TAUNT_SYSTEM_SHOW_COOLDOWN_MESSAGE = true
 		constant boolean TAUNT_SYSTEM_TARGET_ONLY_PLAYING = true
 		constant boolean TAUNT_SYSTEM_TARGET_ONLY_HUMAN = false
-        // Adds "-mute X" chat commands where X can be the player number or color. All taunts from the player will be muted.
+
+		// Adds "-mute X" chat commands where X can be the player number or color. All taunts from the player will be muted.
         constant boolean TAUNT_SYSTEM_ENABLE_MUTE_CHAT_COMMAND = true
 		constant string TAUNT_SYSTEM_MUTE_CHAT_COMMAND = "-mute"
 		constant string TAUNT_SYSTEM_UNMUTE_CHAT_COMMAND = "-unmute"
 		constant string TAUNT_SYSTEM_MUTED_CHAT_COMMAND = "-muted"
+		
+		constant boolean TAUNT_SYSTEM_ENABLE_PLAYERS_CHAT_COMMAND = true
+		constant string TAUNT_SYSTEM_PLAYERS_CHAT_COMMAND = "-players"
+		
 		constant boolean TAUNT_SYSTEM_ENABLE_QUEST = true
 		constant integer TAUNT_SYSTEM_QUEST_TYPE = bj_QUESTTYPE_OPT_DISCOVERED
 		constant string TAUNT_SYSTEM_QUEST_ICON = "ReplaceableTextures\\CommandButtons\\BTNTaunt.blp"
+		constant string TAUNT_SYSTEM_QUEST_TITLE = "Taunts"
+		constant string TAUNT_SYSTEM_QUEST_CREATOR = "Creator: Baradé"
     endglobals
     
     /**
@@ -26,6 +43,7 @@ library TauntSystemConfig requires TauntSystemUtil
     function GetForceFromString takes string name, player from, string whichString returns force
 		local string target = ExtractChatMessageTarget(name, whichString)
 		local integer i
+		local integer team
 		local force result = null
 		local boolean needsToBeFiltered = false
 		
@@ -38,6 +56,46 @@ library TauntSystemConfig requires TauntSystemUtil
 		elseif (target == "enemies") then
 			set result = GetPlayersEnemies(from)
 			set needsToBeFiltered = true
+        elseif (target == "neutral") then
+            set result = CreateForce()
+            set i = 0
+            loop
+                exitwhen (i == bj_MAX_PLAYERS)
+                if (GetPlayerAlliance(from, Player(i), ALLIANCE_PASSIVE)) then
+                    call ForceAddPlayer(result, Player(i))
+                endif
+                set i = i + 1
+            endloop
+        elseif (target == "computer") then
+            set result = CreateForce()
+            set i = 0
+            loop
+                exitwhen (i == bj_MAX_PLAYERS)
+                if (GetPlayerController(Player(i), MAP_CONTROL_COMPUTER)) then
+                    call ForceAddPlayer(result, Player(i))
+                endif
+                set i = i + 1
+            endloop
+        elseif (target == "user") then
+            set result = CreateForce()
+            set i = 0
+            loop
+                exitwhen (i == bj_MAX_PLAYERS)
+                if (GetPlayerController(Player(i), MAP_CONTROL_USER)) then
+                    call ForceAddPlayer(result, Player(i))
+                endif
+                set i = i + 1
+            endloop
+        elseif (StringStartsWith(target, "team")) then
+            set team = S2I(SubString(target, StringLength("team"), StringLength(target)))
+            set i = 0
+            loop
+                exitwhen (i == bj_MAX_PLAYERS)
+                if (GetPlayerTeam(Player(i)) == team) then
+                    call ForceAddPlayer(result, Player(i))
+                endif
+                set i = i + 1
+            endloop
 		endif
 		
 		if (result == null) then
@@ -75,9 +133,9 @@ library TauntSystemConfig requires TauntSystemUtil
     // callback
     function GetTauntMessage takes string name, string text, sound whichSound, player from, force to returns string
 		if (text != null and StringLength(text) > 0) then
-			return GetColoredPlayerNameTaunt(from) + " to " + GetPlayerNamesTaunt(to) + ": \"" + text + "\""
+			return GetColoredPlayerNameTaunt(from) + " to " + GetPlayerNamesTaunt(to, false, false) + ": \"" + text + "\""
 		else
-			return GetColoredPlayerNameTaunt(from) + " to " + GetPlayerNamesTaunt(to) + ": (" + name + ")"
+			return GetColoredPlayerNameTaunt(from) + " to " + GetPlayerNamesTaunt(to, false, false) + ": (" + name + ")"
 		endif
     endfunction
 
@@ -93,22 +151,27 @@ library TauntSystemConfig requires TauntSystemUtil
 	
 	// callback
 	function GetTauntMessageMute takes player to, force from returns string
-		return "Muting: " + GetPlayerNamesTaunt(from)
+		return "Muting: " + GetPlayerNamesTaunt(from, false, false)
 	endfunction
 	
 	// callback
 	function GetTauntMessageUnmute takes player to, force from returns string
-		return "Unmuting: " + GetPlayerNamesTaunt(from)
+		return "Unmuting: " + GetPlayerNamesTaunt(from, false, false)
 	endfunction
 	
 	// callback
 	function GetTauntMessageListMuted takes player to, force muted returns string
-		return "Muted: " + GetPlayerNamesTaunt(muted)
+		return "Muted: " + GetPlayerNamesTaunt(muted, true, true)
+	endfunction
+	
+	// callback
+	function GetTauntMessageListAll takes player to, force all returns string
+        return "Players: " + GetPlayerNamesTaunt(all, true, true)
 	endfunction
     
     // callback
     function GetDisplayTauntsTitle takes player whichPlayer returns string
-        local string result = "Available taunts:\nX = (1-24,red/blue/green,allies,enemies,all,self)"
+        local string result = "Available taunts:\nX = (1-24,red/blue/green,all,self,allies,enemies,neutral,computer,user)"
 		if (TAUNT_SYSTEM_ENABLE_MUTE_CHAT_COMMAND) then
 			set result = result + "\n" + TAUNT_SYSTEM_MUTE_CHAT_COMMAND + "/" + TAUNT_SYSTEM_UNMUTE_CHAT_COMMAND + " X: Mutes/unmutes taunts from source(s) X."
 			set result = result + "\n" + TAUNT_SYSTEM_MUTED_CHAT_COMMAND + ": Lists muted players."
@@ -249,23 +312,26 @@ library TauntSystemUtil
 		return GetTextWithPlayerColorTaunt(GetPlayerColor(whichPlayer), GetPlayerName(whichPlayer))
     endfunction
 	
-	globals
-		private string playerNamesColored = ""
-	endglobals
-	
-	private function ForForceAddPlayerNameColored takes nothing returns nothing
-		if (playerNamesColored != null and StringLength(playerNamesColored) > 0) then
-			set playerNamesColored = playerNamesColored + ", "
-		endif
-		set playerNamesColored = playerNamesColored + GetColoredPlayerNameTaunt(GetEnumPlayer())
-	endfunction
-	
 	// TODO not all names if all allies/enemies etc.
-	function GetPlayerNamesTaunt takes force whichForce returns string
-		local string result = ""
-		call ForForce(whichForce, function ForForceAddPlayerNameColored)
-		set result = playerNamesColored
-		set playerNamesColored = ""
+	function GetPlayerNamesTaunt takes force whichForce, boolean addNumber, boolean addColorName returns string
+		local string result = null
+		local integer i = 0
+		loop
+            exitwhen (i == bj_MAX_PLAYERS)
+            if (IsPlayerInForce(Player(i), whichForce)) then
+                if (result != null and StringLength(result) > 0) then
+                    set result = playerNamesColored + ", "
+                endif
+                set result = result + GetColoredPlayerNameTaunt(Player(i))
+                if (addNumber) then
+                    set result = result + "[" + (i + 1) + "]"
+                endif
+                if (addColorName) then
+                    set result = result + " (" + GetPlayerColorNameTaunt(GetPlayerColor(Player(i))) + ")"
+                endif
+            endif
+            set i = + 1
+        endloop
 		return result
 	endfunction
 	
@@ -337,6 +403,10 @@ library TauntSystem initializer Init requires TauntSystemConfig
 
     globals
         private hashtable tauntHashTable = InitHashtable()
+        private trigger callbackTrigger = CreateTrigger()
+        private string callbackTaunt = ""
+        private player callbackFrom = Player(0)
+        private force callbackTo = GetPlayersAllCopy()
 		private quest array tauntsQuest[28]
     endglobals
 	
@@ -454,6 +524,13 @@ library TauntSystem initializer Init requires TauntSystemConfig
 			call ForceAddForce(all, mutedTauntSounds)
 			call ForceAddForce(all, mutedTauntMessages)
 			call DisplayTextToPlayer(this.whichPlayer, 0.0, 0.0, GetTauntMessageListMuted(this.whichPlayer, all))
+			call DestroyForce(all)
+			set all = null
+		endmethod
+		
+		public method displayPlayers takes nothing returns nothing
+            local force all = GetPlayersAllCopy()
+			call DisplayTextToPlayer(this.whichPlayer, 0.0, 0.0, GetTauntMessageListAll(this.whichPlayer, all))
 			call DestroyForce(all)
 			set all = null
 		endmethod
@@ -595,6 +672,12 @@ library TauntSystem initializer Init requires TauntSystemConfig
                 endif
                 set i = i + 1
             endloop
+            set callbackTaunt = this.name
+            set callbackFrom = from
+            // avoids memory leaks
+            call DestroyForce(callbackTo)
+            set callbackTo = to
+            call ConditionalTriggerExecute(callbackTrigger)
         endmethod
 		
 		public method sendFromPlayer takes player whichPlayer, string msg returns nothing
@@ -650,6 +733,9 @@ library TauntSystem initializer Init requires TauntSystemConfig
                 endif
                 set i = i + 1
             endloop
+            if (found) then
+                set this.aIndex = this.aIndex - 1
+            endif
 			return found
         endmethod
 		
@@ -703,6 +789,9 @@ library TauntSystem initializer Init requires TauntSystemConfig
                 endif
                 set i = i + 1
             endloop
+            if (found) then
+                set thistype.tauntIndex = thistype.tauntIndex - 1
+            endif
         endmethod
         
         public method onDestroy takes nothing returns nothing
@@ -743,7 +832,7 @@ library TauntSystem initializer Init requires TauntSystemConfig
     private function GetTauntByIndex takes integer index returns Taunt
         return Taunt.getTauntByIndex(index)
     endfunction
-	
+
 	private function PrintTaunts takes player whichPlayer returns string
 		local string result = GetDisplayTauntsTitle(whichPlayer)
         local integer j = 0
@@ -860,6 +949,26 @@ library TauntSystem initializer Init requires TauntSystemConfig
         if (taunt != 0) then
             call taunt.send(from, to)
         endif
+    endfunction
+    
+    function GetTriggerTaunt takes nothing returns string
+        return callbackTaunt
+    endfunction
+    
+    function GetTriggerTauntFrom takes nothing returns player
+        return callbackFrom
+    endfunction
+    
+    function GetTriggerTauntTo takes nothing returns force
+        return callbackTo
+    endfunction
+    
+    function RegisterTauntCallback takes code func returns nothing
+        call TriggerAddAction(callbackTrigger, func)
+    endfunction
+    
+    function UnregisterAllTauntCallbacks takes nothing returns nothing
+        call TriggerClearActions(callbackTrigger)
     endfunction
     
     function MuteTaunts takes player whichPlayer, force from returns nothing
@@ -1032,6 +1141,21 @@ library TauntSystem initializer Init requires TauntSystemConfig
 		call TriggerAddAction(tauntsUnmuteChatCommandTrigger, function TriggerActionTauntsMutedChatCommand)
 	endfunction
 	
+	private function TriggerActionTauntsPlayersChatCommand takes nothing returns nothing
+        call GetPlayerData(GetTriggerPlayer()).displayPlayers()
+	endfunction
+	
+	private function InitTauntsPlayersChatCommandTrigger takes nothing returns nothing
+        local trigger tauntPlayersChatCommandTrigger = CreateTrigger()
+		local integer i = 0
+		loop
+			exitwhen (i == bj_MAX_PLAYERS)
+			call TriggerRegisterPlayerChatEvent(tauntPlayersChatCommandTrigger, Player(i), TAUNT_SYSTEM_PLAYERS_CHAT_COMMAND, true)
+			set i = i + 1
+		endloop
+		call TriggerAddAction(tauntPlayersChatCommandTrigger, function TriggerActionTauntsPlayersChatCommand)
+	endfunction
+	
 	private function InitTauntsQuest takes nothing returns nothing
 		local boolean required   = (TAUNT_SYSTEM_QUEST_TYPE == bj_QUESTTYPE_REQ_DISCOVERED) or (TAUNT_SYSTEM_QUEST_TYPE == bj_QUESTTYPE_REQ_UNDISCOVERED)
 		local boolean discovered = (TAUNT_SYSTEM_QUEST_TYPE == bj_QUESTTYPE_REQ_DISCOVERED) or (TAUNT_SYSTEM_QUEST_TYPE == bj_QUESTTYPE_OPT_DISCOVERED)
@@ -1039,7 +1163,7 @@ library TauntSystem initializer Init requires TauntSystemConfig
 		loop
 			exitwhen (i == bj_MAX_PLAYERS)
 			set tauntsQuest[i] = CreateQuest()
-			call QuestSetTitle(tauntsQuest[i], "Taunts")
+			call QuestSetTitle(tauntsQuest[i], TAUNT_SYSTEM_QUEST_TITLE)
 			call QuestSetDescription(tauntsQuest[i], "")
 			call QuestSetIconPath(tauntsQuest[i], TAUNT_SYSTEM_QUEST_ICON)
 			call QuestSetEnabled(tauntsQuest[i], false)
@@ -1051,7 +1175,7 @@ library TauntSystem initializer Init requires TauntSystemConfig
 				call QuestSetCompleted(tauntsQuest[i], false)
 			endif
 			
-			call CreateQuestItemBJ(tauntsQuest[i], "Creator: Baradé")
+			call CreateQuestItemBJ(tauntsQuest[i], TAUNT_SYSTEM_QUEST_CREATOR)
 			set i = i + 1
 		endloop
 		call UpdateTauntsQuest()
@@ -1068,6 +1192,10 @@ library TauntSystem initializer Init requires TauntSystemConfig
 			call InitTauntsMuteChatCommandTrigger()
 			call InitTauntsUnmuteChatCommandTrigger()
 			call InitTauntsMutedChatCommandTrigger()
+		endif
+		
+		if (TAUNT_SYSTEM_ENABLE_PLAYERS_CHAT_COMMAND) then
+            call InitTauntsPlayersChatCommandTrigger()
 		endif
 		
 		if (TAUNT_SYSTEM_ENABLE_QUEST) then

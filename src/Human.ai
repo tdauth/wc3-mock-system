@@ -1,0 +1,463 @@
+globals
+    constant integer COMMAND_SEND_GOLD = 0
+    constant integer COMMAND_SEND_WOOD = 1
+    constant integer COMMAND_ATTACK_PLAYER = 2
+    constant integer COMMAND_WORKERS_GOLD = 3
+    constant integer COMMAND_WORKERS_WOOD = 4
+    constant integer COMMAND_TRAIN_FOOTMEN = 5
+    constant integer COMMAND_BUILD_WATCH_TOWERS = 6
+    constant integer COMMAND_SIEGE = 7
+    
+    integer goldPeons = 5
+    integer woodPeons = 5
+endglobals
+
+//===========================================================================
+// Calculate the modulus/remainder of (dividend) divided by (divisor).
+// Examples:  18 mod 5 = 3.  15 mod 5 = 0.  -8 mod 5 = 2.
+//
+function ModuloInteger takes integer dividend, integer divisor returns integer
+    local integer modulus = dividend - (dividend / divisor) * divisor
+
+    // If the dividend was negative, the above modulus calculation will
+    // be negative, but within (-divisor..0).  We can add (divisor) to
+    // shift this result into the desired range of (0..divisor).
+    if (modulus < 0) then
+        set modulus = modulus + divisor
+    endif
+
+    return modulus
+endfunction
+
+function ChooseHeroSkill takes nothing returns integer
+    local integer curHero = GetHeroId()
+    local integer level = GetHeroLevelAI()
+    local integer mod = ModuloInteger(level, 4)
+    local boolean skillUlti = ModuloInteger(level, 6) == 0 and level / 6 <= 9
+
+    if (curHero == PALADIN) then
+        if (skillUlti) then
+            return RESURRECTION
+        elseif (mod == 0) then
+            return HOLY_BOLT
+        elseif (mod == 1) then
+            return DIVINE_SHIELD
+        elseif (mod == 2) then
+            return DEVOTION_AURA
+        endif
+    elseif (curHero == ARCHMAGE) then
+        if (skillUlti) then
+            return MASS_TELEPORT
+        elseif (mod == 0) then
+            return BLIZZARD
+        elseif (mod == 1) then
+            return BRILLIANCE_AURA
+        elseif (mod == 2) then
+            return WATER_ELEMENTAL
+        endif
+    elseif (curHero == MTN_KING) then
+        if (skillUlti) then
+            return AVATAR
+        elseif (mod == 0) then
+            return THUNDER_CLAP
+        elseif (mod == 1) then
+            return THUNDER_BOLT
+        elseif (mod == 2) then
+            return BASH
+        endif
+    elseif (curHero == BLOOD_MAGE) then
+        if (skillUlti) then
+            return SUMMON_PHOENIX
+        elseif (mod == 0) then
+            return FLAME_STRIKE
+        elseif (mod == 1) then
+            return BANISH
+        elseif (mod == 2) then
+            return SIPHON_MANA
+        endif
+    endif
+
+    return 'Aamk'
+endfunction
+
+function InitHero takes nothing returns nothing
+    if (GetUnitCountDone(PALADIN) > 0) then
+        set hero_id = PALADIN
+    elseif (GetUnitCountDone(ARCHMAGE) > 0) then
+        set hero_id = ARCHMAGE
+    elseif (GetUnitCountDone(MTN_KING) > 0) then
+        set hero_id = MTN_KING
+    elseif (GetUnitCountDone(BLOOD_MAGE) > 0) then
+        set hero_id = BLOOD_MAGE
+    endif
+endfunction
+
+function UpdateWorkers takes nothing returns nothing
+	loop
+        call SetGoldPeons(goldPeons)
+		call SetWoodPeons(woodPeons)
+		call Sleep(1)
+	endloop
+endfunction
+
+function ReactToCommands takes nothing returns nothing
+    local integer command = -1
+    local integer data = -1
+    loop
+        if (CommandsWaiting() > 0) then
+            set command = GetLastCommand()
+            set data = GetLastData()
+            call PopLastCommand()
+            
+            // data is player number now
+            if (command == COMMAND_SEND_GOLD) then
+                call SetPlayerState(Player(data), PLAYER_STATE_RESOURCE_GOLD, GetPlayerState(Player(data), PLAYER_STATE_RESOURCE_GOLD) + GetPlayerState(GetAiPlayer(), PLAYER_STATE_RESOURCE_GOLD))
+                call SetPlayerState(GetAiPlayer(), PLAYER_STATE_RESOURCE_GOLD, 0)
+            elseif (command == COMMAND_SEND_WOOD) then
+                call SetPlayerState(Player(data), PLAYER_STATE_RESOURCE_LUMBER, GetPlayerState(Player(data), PLAYER_STATE_RESOURCE_LUMBER) + GetPlayerState(GetAiPlayer(), PLAYER_STATE_RESOURCE_LUMBER))
+                call SetPlayerState(GetAiPlayer(), PLAYER_STATE_RESOURCE_LUMBER, 0)
+            elseif (command == COMMAND_ATTACK_PLAYER) then
+                call SuicideOnPlayer(0, Player(data))
+            // data is the number of workers
+            elseif (command == COMMAND_WORKERS_GOLD) then
+                set goldPeons = goldPeons + data
+            // data is the number of workers
+            elseif (command == COMMAND_WORKERS_WOOD) then
+                set woodPeons = woodPeons + data
+            // data is the unit type
+            elseif (command == COMMAND_TRAIN_FOOTMEN) then
+                call CampaignAttackerEx( 1, 1, 1, FOOTMAN )
+            // data is the unit type
+            elseif (command == COMMAND_BUILD_WATCH_TOWERS) then
+                call SetBuildUnit( data, WATCH_TOWER )
+            elseif (command == COMMAND_SIEGE) then
+                call AddSiege()
+            endif
+        endif
+		call Sleep(1)
+	endloop
+endfunction
+
+function ConfigureAI takes nothing returns nothing
+    call SetTargetHeroes( true )
+    call SetUnitsFlee( true )
+    call SetHeroesFlee( true )
+    call SetPeonsRepair( true )
+    call SetHeroesBuyItems( true )
+    call SetHeroesTakeItems( true )
+    call SetSlowChopping( false )
+	call SetWatchMegaTargets( true )
+	call SetIgnoreInjured( false )
+	call SetGroupsFlee( false )
+	call SetCaptainChanges ( false )
+	call SetSmartArtillery ( true )
+    call GroupTimedLife ( true )
+endfunction
+
+function BuildingStrategy takes nothing returns nothing
+    // **********************************
+    // *      Building Strategy         *
+    // **********************************
+    // Tier 1 Buildings
+	call SetReplacements( 1, 2, 3 )
+	call SetBuildUnit( 1, TOWN_HALL )
+	call SetBuildUnit( 10, PEASANT )
+	call SetBuildUnit( 3, HOUSE )
+	call SetBuildUnit( 2, BARRACKS )
+	call SetBuildUnit( 1, HUMAN_ALTAR )
+	call SetBuildUnit( 1, LUMBER_MILL )
+	call SetBuildUnit( 1, BLACKSMITH )
+	call SetBuildUnit( 1, ARCANE_VAULT )
+	
+	call SetBuildUpgr( 1, UPG_MELEE )
+    call SetBuildUpgr( 1, UPG_RANGED )
+	call SetBuildUpgr( 1, UPG_ARMOR )
+	call SetBuildUpgr( 1, UPG_LEATHER )
+    call SetBuildUpgr( 1, UPG_DEFEND )
+	call SetBuildUpgr( 1, UPG_MASONRY )
+
+    // Tier 2 buildings
+	call SetBuildUnit( 1, KEEP )
+	call SetBuildUnit( 1, ARCANE_SANCTUM )
+	call SetBuildUnit( 1, WORKSHOP )
+	call SetBuildUnit( 4, HOUSE )
+	
+	call SetBuildUnit( 3, WATCH_TOWER )
+	
+	call SetBuildUpgr( 2, UPG_MELEE )
+    call SetBuildUpgr( 2, UPG_RANGED )
+	call SetBuildUpgr( 2, UPG_ARMOR )
+	call SetBuildUpgr( 2, UPG_LEATHER )
+	call SetBuildUpgr( 1, UPG_WOOD )
+	call SetBuildUpgr( 2, UPG_MASONRY )
+	call SetBuildUpgr( 1, UPG_SENTINEL )
+	call SetBuildUpgr( 1, UPG_GUN_RANGE )
+	call SetBuildUpgr( 1, UPG_PRAYING )
+	call SetBuildUpgr( 1, UPG_SORCERY )
+	call SetBuildUpgr( 1, UPG_FRAGS )
+	call SetBuildUpgr( 1, UPG_FLAK )
+	call SetBuildUpgr( 1, UPG_TANK )
+	call SetBuildUpgr( 1, 'Rhfl' ) // flare
+
+    // Tier 3 buildings
+	call SetBuildUnit( 1, CASTLE )
+	call SetBuildUnit( 1, AVIARY )
+	call SetBuildUnit( 2, GUARD_TOWER )
+	call SetBuildUnit( 1, CANNON_TOWER )
+	
+	call SetBuildUpgr( 3, UPG_MELEE )
+    call SetBuildUpgr( 3, UPG_RANGED )
+	call SetBuildUpgr( 3, UPG_ARMOR )
+	call SetBuildUpgr( 3, UPG_LEATHER )
+	call SetBuildUpgr( 2, UPG_WOOD )
+	call SetBuildUpgr( 3, UPG_MASONRY )
+	call SetBuildUpgr( 1, 'Rhpm' ) // backpack
+	call SetBuildUpgr( 2, UPG_PRAYING )
+	call SetBuildUpgr( 2, UPG_SORCERY )
+	call SetBuildUpgr( 1, UPG_BREEDING )
+	call SetBuildUpgr( 1, UPG_HAMMERS )
+	call SetBuildUpgr( 1, UPG_BOMBS )
+	call SetBuildUpgr( 1, 'Rhsb' ) // sundering blades
+    // **********************************
+    // *    End Building Strategy       *
+    // **********************************
+endfunction
+
+function AddStandardUnitsToAttackWave takes nothing returns nothing
+	call PurchaseZeppelin()
+    call CampaignAttacker( 0, 1, hero_id )
+endfunction
+
+//===========================================================================
+// Basic attack functionality
+//===========================================================================
+function AttackTarget takes unit target, boolean addAlliance returns nothing
+    if (target == null) then
+        return
+    endif
+    if (addAlliance) then
+        call SetAllianceTarget( target )
+    endif
+    call FormGroup( 3, true )
+    call AttackMoveKillA( target )
+    if (not addAlliance) then
+        call SetAllianceTarget( null )
+    endif
+endfunction
+
+//===========================================================================
+// Initiates an attack based on target priorities
+//===========================================================================
+function LaunchAttack takes nothing returns nothing
+    local unit target = null
+    local boolean setAlly = true
+
+    // Don't launch any attack while town is threatened
+    if (TownThreatened()) then
+        call Sleep( 2 )
+        return
+    endif
+
+    // Target Priority #1
+    if (target == null) then
+        set target = GetAllianceTarget()
+        if (target != null) then
+            set setAlly = false
+        endif
+    endif
+
+    // Target Priority #2
+    if (target == null) then
+        set target = GetExpansionFoe()
+        if (target != null) then
+            set take_exp = false
+        endif
+    endif
+
+    // Target Priority #3
+    if (target == null) then
+        set target = GetMegaTarget()
+    endif
+
+    // Target Priority #4
+    if (target == null) then
+        set target = GetEnemyExpansion()
+    endif
+
+    // Target Priority #5
+    if (target == null) then
+        set target = GetEnemyExpansion()
+        if (target == null) then
+            call StartGetEnemyBase(  )
+            loop
+                exitwhen (not WaitGetEnemyBase())
+                call SuicideSleep( 1 )
+            endloop
+            set target = GetEnemyBase()
+        endif
+    endif
+
+    // Target Priority #6
+    if (target == null) then
+        set target = GetCreepCamp( 0, 9, false )
+    endif
+
+    // Target Priority #7
+    if (target == null) then
+        set target = GetCreepCamp( 10, 100, true )
+    endif
+
+    // Attack the target and increment attack wave
+    if (target != null) then
+        call AttackTarget( target, setAlly )
+    else
+        // If no target was found, sleep a bit before trying again
+        call Sleep( 20 )
+    endif
+endfunction
+
+function AttackWaves takes nothing returns nothing
+    //*** WAVE 1 ***
+    call InitAssaultGroup()
+    call CampaignAttackerEx( 2, 3, 3, FOOTMAN )
+    call CampaignAttackerEx( 0, 1, 2, RIFLEMAN )
+    call AddStandardUnitsToAttackWave()
+    call Sleep( M3 ) // Waits 3 minutes before attacking
+    call LaunchAttack()
+
+    //*** WAVE 2 ***
+    call InitAssaultGroup()
+    call CampaignAttackerEx( 2, 3, 3, FOOTMAN )
+    call CampaignAttackerEx( 0, 1, 2, RIFLEMAN )
+    call AddStandardUnitsToAttackWave()
+    call Sleep( M2 ) // Waits 2 minutes before attacking
+    call LaunchAttack()
+
+    //*** WAVE 3 ***
+    call InitAssaultGroup()
+    call CampaignAttackerEx( 3, 4, 4, FOOTMAN )
+    call CampaignAttackerEx( 1, 2, 3, RIFLEMAN )
+    call AddStandardUnitsToAttackWave()
+    call Sleep( M1 ) // Waits 1 minute before attacking
+    call LaunchAttack()
+
+    //*** WAVE 4 ***
+    call InitAssaultGroup()
+    call CampaignAttackerEx( 3, 4, 4, FOOTMAN )
+    call CampaignAttackerEx( 1, 2, 3, RIFLEMAN )
+    call CampaignAttackerEx( 1, 2, 3, KNIGHT )
+    call AddStandardUnitsToAttackWave()
+    call Sleep( M2 ) // Waits 2 minutes before attacking
+    call LaunchAttack()
+
+    //*** WAVE 5 ***
+    call InitAssaultGroup()
+    call CampaignAttackerEx( 3, 4, 4, FOOTMAN )
+    call CampaignAttackerEx( 1, 2, 3, RIFLEMAN )
+    call CampaignAttackerEx( 1, 2, 3, KNIGHT )
+    call CampaignAttackerEx( 1, 2, 3, MORTAR )
+    call AddStandardUnitsToAttackWave()
+    call Sleep( M2 ) // Waits 2 minutes before attacking
+    call LaunchAttack()
+
+    //*** WAVE 6 ***
+    call InitAssaultGroup()
+    call CampaignAttackerEx( 3, 4, 4, FOOTMAN )
+    call CampaignAttackerEx( 1, 2, 3, RIFLEMAN )
+    call CampaignAttackerEx( 1, 2, 3, KNIGHT )
+    call CampaignAttackerEx( 1, 2, 3, MORTAR )
+    call CampaignAttackerEx( 2, 2, 3, PRIEST )
+    call AddStandardUnitsToAttackWave()
+    call Sleep( M2 ) // Waits 2 minutes before attacking
+    call LaunchAttack()
+
+    //*** WAVE 7 ***
+    call InitAssaultGroup()
+    call CampaignAttackerEx( 3, 4, 4, FOOTMAN )
+    call CampaignAttackerEx( 1, 2, 3, RIFLEMAN )
+    call CampaignAttackerEx( 1, 2, 3, KNIGHT )
+    call CampaignAttackerEx( 1, 2, 3, MORTAR )
+    call CampaignAttackerEx( 2, 2, 3, PRIEST )
+    call AddStandardUnitsToAttackWave()
+    call Sleep( M2 ) // Waits 2 minutes before attacking
+    call LaunchAttack()
+
+    //*** WAVE 8 ***
+    call InitAssaultGroup()
+    call CampaignAttackerEx( 3, 4, 4, FOOTMAN )
+    call CampaignAttackerEx( 1, 2, 3, RIFLEMAN )
+    call CampaignAttackerEx( 1, 2, 3, KNIGHT )
+    call CampaignAttackerEx( 1, 2, 3, MORTAR )
+    call CampaignAttackerEx( 2, 2, 3, PRIEST )
+    call CampaignAttackerEx( 2, 2, 3, SORCERESS )
+    call AddStandardUnitsToAttackWave()
+    call Sleep( M2 ) // Waits 2 minutes before attacking
+    call LaunchAttack()
+
+    //*** WAVE 9 ***
+    call InitAssaultGroup()
+    call CampaignAttackerEx( 3, 4, 4, FOOTMAN )
+    call CampaignAttackerEx( 1, 2, 3, RIFLEMAN )
+    call CampaignAttackerEx( 1, 2, 3, KNIGHT )
+    call CampaignAttackerEx( 1, 2, 3, MORTAR )
+    call CampaignAttackerEx( 2, 2, 3, PRIEST )
+    call CampaignAttackerEx( 2, 2, 3, SORCERESS )
+    call AddStandardUnitsToAttackWave()
+    call Sleep( M2 ) // Waits 2 minutes before attacking
+    call LaunchAttack()
+
+    //*** WAVE 10 ***
+    call InitAssaultGroup()
+    call CampaignAttackerEx( 3, 4, 4, FOOTMAN )
+    call CampaignAttackerEx( 1, 2, 3, RIFLEMAN )
+    call CampaignAttackerEx( 1, 2, 3, KNIGHT )
+    call CampaignAttackerEx( 1, 2, 3, MORTAR )
+    call CampaignAttackerEx( 2, 2, 3, PRIEST )
+    call CampaignAttackerEx( 2, 2, 3, SORCERESS )
+    call CampaignAttackerEx( 2, 2, 3, GRYPHON )
+    call AddStandardUnitsToAttackWave()
+    call Sleep( M2 ) // Waits 2 minutes before attacking
+    call LaunchAttack()
+
+    //*** WAVE 11 ***
+    call InitAssaultGroup()
+    call CampaignAttackerEx( 3, 4, 4, FOOTMAN )
+    call CampaignAttackerEx( 1, 2, 3, RIFLEMAN )
+    call CampaignAttackerEx( 1, 2, 3, KNIGHT )
+    call CampaignAttackerEx( 1, 2, 3, MORTAR )
+    call CampaignAttackerEx( 2, 2, 3, PRIEST )
+    call CampaignAttackerEx( 2, 2, 3, SORCERESS )
+    call CampaignAttackerEx( 2, 2, 3, GRYPHON )
+    call CampaignAttackerEx( 2, 2, 3, TANK )
+    call AddStandardUnitsToAttackWave()
+    call Sleep( M2 ) // Waits 2 minutes before attacking
+    call LaunchAttack()
+
+    loop //Init the infinite attack loop
+        //*** WAVE 12 ***
+		call InitAssaultGroup()
+		call CampaignAttackerEx( 4, 8, 12, FOOTMAN )
+		call CampaignAttackerEx( 4, 8, 12, RIFLEMAN )
+		call CampaignAttackerEx( 4, 8, 12, KNIGHT )
+		call CampaignAttackerEx( 4, 8, 12, MORTAR )
+		call CampaignAttackerEx( 4, 8, 12, PRIEST )
+		call CampaignAttackerEx( 4, 8, 12, SORCERESS )
+		call CampaignAttackerEx( 4, 8, 12, GRYPHON )
+		call CampaignAttackerEx( 4, 8, 12, TANK )
+		call AddStandardUnitsToAttackWave()
+		call Sleep( M2 ) // Waits 2 minutes before attacking
+		call LaunchAttack()
+    endloop
+endfunction
+
+function main takes nothing returns nothing
+    call CampaignAI( HOUSE, function ChooseHeroSkill )
+    call ConfigureAI( )
+    call InitHero( )
+	call StartThread(function UpdateWorkers)
+	call StartThread(function ReactToCommands)
+
+    call BuildingStrategy( )
+
+    call AttackWaves( )
+endfunction

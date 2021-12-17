@@ -12,6 +12,23 @@ Put [the system's code](./src/TauntSystem.j) in your own custom map script, save
 
 Download [this example map](./wc3tauntsystem1.0.w3x) to try the system.
 
+The map uses the AI extension allowing to you not only to taunt the other players but to command your allies.
+
+## Features
+
+* Easy to use without any dependencies or much effort.
+* Provides many standard chat commands.
+* Supports standard sounds from Warcraft III.
+* Predefined collections of standard Warcarft III sounds.
+* Multiple aliases per taunt.
+* Mute player texts and sounds.
+* Cooldowns to avoid spamming.
+* Enable taunts per player only.
+* Supports a quest per player listing all available chat commands.
+* Highly configurable via options and callbacks.
+* Non-leaking.
+* AI commands support.
+
 ## Standard Chat Commands
 
 By default, the system provides some useful chat commands for taunting.
@@ -21,7 +38,7 @@ By default, the system provides some useful chat commands for taunting.
 * `-muted`: Lists muted players.
 * `-players`: Lists all playing players who you can send taunts to with their player numbers and color name and indicating whether you have muted them or not.
 
-`X` can have different values like multiple player numbers `1,2,4``, player colors `red,green,blue` or the following special identifiers:
+`X` can have different values like multiple player numbers `1,2,4`, player colors `red,green,blue` or the following special identifiers:
 
 * `all`: Affects all playing players. This is the default behaviour if you do no not specify X.
 * `allies`: Affects all allied playing players.
@@ -41,20 +58,6 @@ The special identifiers are shown in addition to the actual players who the taun
 ## Standard Quest
 
 By default, there is an optional quest in the quest log which describes how to use taunts and lists all available chat commands per player.
-
-## Features
-
-* Easy to use without any dependencies or much effort.
-* Provides many standard chat commands.
-* Supports standard sounds from Warcraft III.
-* Predefined collections of standard Warcarft III sounds.
-* Multiple aliases per taunt.
-* Mute player texts and sounds.
-* Cooldowns to avoid spamming.
-* Enable taunts per player only.
-* Supports a quest per player listing all available chat commands.
-* Highly configurable via options and callbacks.
-* Non-leaking.
 
 ## API
 
@@ -98,6 +101,16 @@ function IsTauntEnabledForPlayer takes string name, player whichPlayer returns b
 
 function SendTaunt takes string name, player from, force to returns nothing
 
+function GetTriggeredTaunt takes nothing returns string
+    
+function GetTriggeredTauntFrom takes nothing returns player
+    
+function GetTriggeredTauntTo takes nothing returns force
+    
+function RegisterTauntCallback takes code func returns nothing
+    
+function UnregisterAllTauntCallbacks takes nothing returns nothing
+
 function MuteTaunts takes player whichPlayer, force from returns nothing
 
 function IsTauntMutedForPlayer takes string name, player whichPlayer returns boolean
@@ -120,17 +133,72 @@ function UnmuteTauntMessages takes player whichPlayer, force from returns nothin
  * Displays all possible taunt chat commands to each player from the given force.
  */
 function DisplayTaunts takes force whichForce returns nothing
-
-/**
- * Adds a taunt called "-saynomore" with the standard archer sound from Warcraft III for players in whichForce only.
- */
-function AddTauntArcherSayNoMore takes force whichForce returns nothing
-
-/**
- * Adds useful Night Elf taunts with standard sounds from Warcraft III for players in whichForce only.
- */
-function AddTauntsNightElf takes force whichForce returns nothing
 ```
+
+The following functions add standard Warcraft III sounds with predefined names:
+
+```
+function AddTauntArthasOfCourse takes nothing returns nothing
+
+function AddTauntPeasantHelp takes nothing returns nothing
+```
+
+## Extensions
+
+### AI Extension
+
+[The AI extension](./src/TauntAIExtension.j) allows you to send commands to the AI with the help of taunts.
+It adds the following functions:
+
+```
+function AddTauntAICommand takes nothing returns integer
+    
+function SetTauntAICommandDataCalculator takes integer command, TauntAICommandDataCalculator dataCalculator returns nothing
+
+function SetTauntAICommandDataCalculatorSendingPlayer takes integer command returns nothing
+
+function SetTauntAICommandDataCalculatorTargetPlayer takes integer command returns nothing
+
+function EnableTauntAICommandForTaunt takes integer command, string name returns nothing
+
+function DisableTauntAICommandForTaunt takes integer command, string name returns nothing
+
+function IsTauntAICommandEnabledForTaunt takes integer command, string name returns boolean
+
+function EnableTauntAICommandForPlayer takes integer command, player from, player to returns nothing
+
+function DisableTauntAICommandForPlayer takes integer command, player from, player to returns nothing
+
+function IsTauntAICommandEnabledForPlayer takes integer command, player from, player to returns boolean
+
+function EnableAICommandComputerAllies takes integer command, player from returns nothing
+
+function EnableAICommandComputerAlliesForAll takes integer command returns nothing
+
+function GetTriggerTauntAICommand takes nothing returns integer
+
+function GetTriggerTauntAIData takes nothing returns integer
+
+function RegisterTauntAICommandCallback takes code func returns nothing
+
+function UnregisterAllTauntAICommandCallbacks takes nothing returns nothing
+```
+
+These functions allow you to register AI commands dynamically for taunts. When the taunt is used the AI command will be send with the given data to the given force.
+However, the AI script has to be written manually to react to the command since there are no standard AI commands in Warcraft III.
+The example map provides some AI which reacts to certain taunts.
+
+[Human.ai](./src/Human.ai) is an example campaign AI script which reacts to the AI taunts from the example map.
+It contains a single thread which handles all AI commands.
+The same could be done for melee AI scripts.
+
+[example.j](./src/example.j) shows how to add some AI taunt commands.
+
+### UI Extension
+
+The UI extension adds a custom UI which allows the player to send taunts.
+
+TODO Work in progress.
 
 ## Implementation
 
